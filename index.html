@@ -2401,49 +2401,183 @@ const EXERCISES = {
   ]
 };
 
-const SHOPPING = {
-  "Protein (Hofer ~27€/Woche)": [
-    { name: "SONNHOF Maishendl-Kombipack ~1kg", price: "~5,50€" },
-    { name: "SONNHOF Faschiertes gemischt 500g", price: "~5€" },
-    { name: "MILSANI Magerquark/Topfen 500g × 4", price: "~5,60€" },
-    { name: "Eier 10er Pack", price: "~2,80€" },
-    { name: "ALMARE Thunfisch in Wasser × 4 Dosen", price: "~4€" },
-    { name: "MILSANI Naturjoghurt/Skyr 500g", price: "~1,30€" },
-    { name: "MILSANI Milch 1L × 2", price: "~2€" }
-  ],
-  "Kohlenhydrate (~8€/Woche)": [
-    { name: "HAPPY HARVEST Haferflocken 500g", price: "~1€" },
-    { name: "HAPPY HARVEST Langkornreis 1kg", price: "~1,50€" },
-    { name: "HAPPY HARVEST Nudeln 500g × 2", price: "~1,60€" },
-    { name: "HAPPY HARVEST Toastbrot 500g", price: "~0,95€" },
-    { name: "Kartoffeln 2kg", price: "~2€" }
-  ],
-  "Obst & Gemüse (~13€/Woche)": [
-    { name: "Bananen 1kg", price: "~1,30€" },
-    { name: "Äpfel 1kg", price: "~1,99€" },
-    { name: "TK-Beeren 750g", price: "~2,99€" },
-    { name: "Tomaten 500g", price: "~1,79€" },
-    { name: "Gurke", price: "~0,79€" },
-    { name: "Paprika 3er Pack", price: "~1,99€" },
-    { name: "TK-Brokkoli/Erbsen 750g", price: "~1,49€" },
-    { name: "Zwiebeln 1kg", price: "~0,99€" },
-    { name: "Knoblauch", price: "~0,59€" }
-  ],
-  "Vorräte (~16€ Erstausstattung)": [
-    { name: "Passierte Tomaten 500g × 2", price: "~1,60€" },
-    { name: "Olivenöl 0,5L", price: "~3,99€" },
-    { name: "Erdnussbutter 400g", price: "~2,49€" },
-    { name: "Honig", price: "~2,49€" },
-    { name: "MILSANI Käse gerieben 200g", price: "~2,49€" },
-    { name: "Gewürze (Salz, Pfeffer, Paprika, Knoblauch, Oregano)", price: "~3€" }
-  ],
-  "Supplements (einmalig)": [
-    { name: "Kreatin Monohydrat 300g (DM/Hofer)", price: "~10€" },
-    { name: "Whey Protein 1kg (DM/Hofer)", price: "~18€" },
-    { name: "L-Citrullin Malat 300g (DM)", price: "~15€" },
-    { name: "Koffein-Tabletten 200mg (Apotheke)", price: "~5€" }
-  ]
+const SHOPPING_BY_GOAL = {
+  muscle: {
+    label: "Muskelaufbau",
+    weeklyEst: "~48€",
+    desc: "Kalorienreich & proteinreich – maximales Muskelwachstum",
+    lists: {
+      "Protein (~27€/Woche)": [
+        { name: "SONNHOF Maishendl-Kombipack ~1kg", price: "~5,50€" },
+        { name: "SONNHOF Faschiertes gemischt 500g", price: "~5€" },
+        { name: "MILSANI Magerquark/Topfen 500g × 4", price: "~5,60€" },
+        { name: "Eier 10er Pack", price: "~2,80€" },
+        { name: "ALMARE Thunfisch in Wasser × 4 Dosen", price: "~4€" },
+        { name: "MILSANI Naturjoghurt/Skyr 500g", price: "~1,30€" },
+        { name: "MILSANI Milch 1L × 2", price: "~2€" }
+      ],
+      "Kohlenhydrate (~12€/Woche)": [
+        { name: "HAPPY HARVEST Haferflocken 500g", price: "~1€" },
+        { name: "HAPPY HARVEST Langkornreis 1kg", price: "~1,50€" },
+        { name: "HAPPY HARVEST Nudeln 500g × 2", price: "~1,60€" },
+        { name: "HAPPY HARVEST Toastbrot 500g", price: "~0,95€" },
+        { name: "Kartoffeln 2kg", price: "~2€" },
+        { name: "Bananen 1kg", price: "~1,30€" },
+        { name: "Erdnussbutter 400g (Kalorien-Boost)", price: "~2,49€" }
+      ],
+      "Obst & Gemüse (~9€/Woche)": [
+        { name: "Äpfel 1kg", price: "~1,99€" },
+        { name: "TK-Beeren 750g", price: "~2,99€" },
+        { name: "Tomaten 500g", price: "~1,79€" },
+        { name: "Paprika 3er Pack", price: "~1,99€" },
+        { name: "TK-Brokkoli 750g", price: "~1,49€" },
+        { name: "Zwiebeln 1kg + Knoblauch", price: "~1,59€" }
+      ],
+      "Vorräte (~16€ Erstausstattung)": [
+        { name: "Passierte Tomaten 500g × 2", price: "~1,60€" },
+        { name: "Olivenöl 0,5L", price: "~3,99€" },
+        { name: "Honig", price: "~2,49€" },
+        { name: "MILSANI Käse gerieben 200g", price: "~2,49€" },
+        { name: "Gewürze (Salz, Pfeffer, Paprika, Knoblauch, Oregano)", price: "~3€" }
+      ],
+      "Supplements (einmalig)": [
+        { name: "Kreatin Monohydrat 300g (DM/Hofer)", price: "~10€" },
+        { name: "Whey Protein 1kg (DM/Hofer)", price: "~18€" },
+        { name: "L-Citrullin Malat 300g (DM)", price: "~15€" },
+        { name: "Koffein-Tabletten 200mg (Apotheke)", price: "~5€" }
+      ]
+    }
+  },
+  cut: {
+    label: "Definition / Abnehmen",
+    weeklyEst: "~42€",
+    desc: "Sehr proteinreich & kalorienarm – Fett verbrennen, Muskeln erhalten",
+    lists: {
+      "Protein (~29€/Woche – viel davon!)": [
+        { name: "SONNHOF Maishendl-Innenfilets 400g × 2", price: "~7€" },
+        { name: "MILSANI Magerquark/Topfen 500g × 5", price: "~7€" },
+        { name: "Eier 10er Pack", price: "~2,80€" },
+        { name: "ALMARE Thunfisch in Wasser × 5 Dosen", price: "~5€" },
+        { name: "MILSANI Skyr 500g × 2", price: "~2,60€" },
+        { name: "MILSANI Milch 0,5L (nur für Kaffee/Shake)", price: "~0,60€" }
+      ],
+      "Kohlenhydrate (Timing wichtig – nach Training!)": [
+        { name: "HAPPY HARVEST Haferflocken 500g", price: "~1€" },
+        { name: "HAPPY HARVEST Langkornreis 500g", price: "~0,79€" },
+        { name: "HAPPY HARVEST Toastbrot 500g", price: "~0,95€" },
+        { name: "Kartoffeln 1kg", price: "~1€" }
+      ],
+      "Gemüse (so viel wie möglich!)": [
+        { name: "Brokkoli frisch oder TK 750g × 2", price: "~2,98€" },
+        { name: "TK-Spinat 750g", price: "~1,49€" },
+        { name: "Paprika 3er Pack", price: "~1,99€" },
+        { name: "Gurken × 2", price: "~1,58€" },
+        { name: "Tomaten 500g", price: "~1,79€" },
+        { name: "Salatmix", price: "~1,49€" },
+        { name: "Bananen 1kg (nach Training)", price: "~1,30€" },
+        { name: "Äpfel 1kg", price: "~1,99€" },
+        { name: "Zwiebeln 1kg + Knoblauch", price: "~1,59€" }
+      ],
+      "Vorräte (~12€ Erstausstattung)": [
+        { name: "Passierte Tomaten 500g × 2", price: "~1,60€" },
+        { name: "Olivenöl 0,5L (sparsam verwenden!)", price: "~3,99€" },
+        { name: "MILSANI Käse gerieben 200g (wenig!)", price: "~2,49€" },
+        { name: "Gewürze (Salz, Pfeffer, Paprika, Knoblauch, Oregano)", price: "~3€" }
+      ],
+      "Supplements (einmalig)": [
+        { name: "Kreatin Monohydrat 300g (DM/Hofer)", price: "~10€" },
+        { name: "Whey Protein 1kg – Protein hoch halten!", price: "~18€" },
+        { name: "Koffein-Tabletten 200mg (Apotheke)", price: "~5€" }
+      ]
+    }
+  },
+  recomp: {
+    label: "Recomp",
+    weeklyEst: "~45€",
+    desc: "Hochprotein & moderate Kalorien – gleichzeitig Muskeln aufbauen & Fett abbauen",
+    lists: {
+      "Protein (~28€/Woche – Priorität #1)": [
+        { name: "SONNHOF Maishendl-Kombipack ~1kg", price: "~5,50€" },
+        { name: "MILSANI Magerquark/Topfen 500g × 4", price: "~5,60€" },
+        { name: "Eier 10er Pack", price: "~2,80€" },
+        { name: "ALMARE Thunfisch in Wasser × 4 Dosen", price: "~4€" },
+        { name: "MILSANI Skyr 500g", price: "~1,30€" },
+        { name: "MILSANI Milch 1L", price: "~1€" }
+      ],
+      "Kohlenhydrate (moderate Menge, nach Training)": [
+        { name: "HAPPY HARVEST Haferflocken 500g", price: "~1€" },
+        { name: "HAPPY HARVEST Langkornreis 1kg", price: "~1,50€" },
+        { name: "HAPPY HARVEST Nudeln 500g", price: "~0,79€" },
+        { name: "HAPPY HARVEST Toastbrot 500g", price: "~0,95€" },
+        { name: "Kartoffeln 1kg", price: "~1€" }
+      ],
+      "Obst & Gemüse (reichlich!)": [
+        { name: "Bananen 1kg", price: "~1,30€" },
+        { name: "Äpfel 1kg", price: "~1,99€" },
+        { name: "TK-Brokkoli/Spinat 750g × 2", price: "~2,98€" },
+        { name: "Tomaten 500g", price: "~1,79€" },
+        { name: "Paprika 3er Pack", price: "~1,99€" },
+        { name: "Gurke", price: "~0,79€" },
+        { name: "Zwiebeln 1kg + Knoblauch", price: "~1,59€" }
+      ],
+      "Vorräte (~14€ Erstausstattung)": [
+        { name: "Passierte Tomaten 500g × 2", price: "~1,60€" },
+        { name: "Olivenöl 0,5L", price: "~3,99€" },
+        { name: "Erdnussbutter 400g (in Maßen)", price: "~2,49€" },
+        { name: "MILSANI Käse gerieben 200g", price: "~2,49€" },
+        { name: "Gewürze (Salz, Pfeffer, Paprika, Knoblauch, Oregano)", price: "~3€" }
+      ],
+      "Supplements (einmalig)": [
+        { name: "Kreatin Monohydrat 300g (DM/Hofer)", price: "~10€" },
+        { name: "Whey Protein 1kg (DM/Hofer)", price: "~18€" },
+        { name: "L-Citrullin Malat 300g (DM)", price: "~15€" },
+        { name: "Koffein-Tabletten 200mg (Apotheke)", price: "~5€" }
+      ]
+    }
+  },
+  maintain: {
+    label: "Fitness / Halten",
+    weeklyEst: "~40€",
+    desc: "Ausgewogen & gesund – Gewicht halten, fit bleiben",
+    lists: {
+      "Protein (~24€/Woche)": [
+        { name: "SONNHOF Maishendl-Kombipack ~1kg", price: "~5,50€" },
+        { name: "MILSANI Magerquark/Topfen 500g × 3", price: "~4,20€" },
+        { name: "Eier 10er Pack", price: "~2,80€" },
+        { name: "ALMARE Thunfisch in Wasser × 3 Dosen", price: "~3€" },
+        { name: "MILSANI Naturjoghurt 500g × 2", price: "~2,60€" }
+      ],
+      "Kohlenhydrate (~8€/Woche)": [
+        { name: "HAPPY HARVEST Haferflocken 500g", price: "~1€" },
+        { name: "HAPPY HARVEST Langkornreis 1kg", price: "~1,50€" },
+        { name: "HAPPY HARVEST Nudeln 500g", price: "~0,79€" },
+        { name: "HAPPY HARVEST Toastbrot 500g", price: "~0,95€" },
+        { name: "Kartoffeln 1kg", price: "~1€" }
+      ],
+      "Obst & Gemüse (~12€/Woche)": [
+        { name: "Bananen 1kg", price: "~1,30€" },
+        { name: "Äpfel 1kg", price: "~1,99€" },
+        { name: "TK-Beeren 750g", price: "~2,99€" },
+        { name: "Tomaten 500g", price: "~1,79€" },
+        { name: "Gurke + Paprika 3er Pack", price: "~2,78€" },
+        { name: "TK-Brokkoli 750g", price: "~1,49€" },
+        { name: "Zwiebeln 1kg + Knoblauch", price: "~1,59€" }
+      ],
+      "Vorräte (~14€ Erstausstattung)": [
+        { name: "Passierte Tomaten 500g × 2", price: "~1,60€" },
+        { name: "Olivenöl 0,5L", price: "~3,99€" },
+        { name: "Erdnussbutter 400g", price: "~2,49€" },
+        { name: "MILSANI Käse gerieben 200g", price: "~2,49€" },
+        { name: "Gewürze (Salz, Pfeffer, Paprika, Knoblauch, Oregano)", price: "~3€" }
+      ],
+      "Supplements (einmalig)": [
+        { name: "Kreatin Monohydrat 300g (DM/Hofer)", price: "~10€" },
+        { name: "Multivitamin (optional)", price: "~5€" }
+      ]
+    }
+  }
 };
+const SHOPPING = SHOPPING_BY_GOAL.muscle.lists;
 
 // ============ TABS ============
 document.querySelectorAll('.tab').forEach(tab => {
@@ -2525,11 +2659,19 @@ function renderRecipes() {
       // Add "Best Match" badge for top recipes
       const isTopMatch = scoreRecipe(rec) >= 130;
       
+      // Goal badges
+      const proteinRatio = rec.p / rec.kcal;
+      const goalBadges = [];
+      if (rec.p >= 40 && rec.kcal >= 600) goalBadges.push('<span style="background:rgba(212,255,58,0.15);color:#d4ff3a;border:1px solid #d4ff3a;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">MUSCLE</span>');
+      if (proteinRatio >= 0.055 && rec.kcal <= 650) goalBadges.push('<span style="background:rgba(255,107,107,0.15);color:#ff8a8a;border:1px solid #ff6b6b;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">CUT</span>');
+      if (rec.p >= 35 && rec.kcal <= 750) goalBadges.push('<span style="background:rgba(107,203,255,0.15);color:#6bcbff;border:1px solid #6bcbff;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">RECOMP</span>');
+
       card.innerHTML = `
         <div class="recipe-header">
           <div class="recipe-main">
-            <div class="recipe-name">${rec.name}${isTopMatch ? ' <span class="custom-ex-tag" style="font-size: 9px;">TOP-MATCH</span>' : ''}</div>
+            <div class="recipe-name">${rec.name}${isTopMatch ? ' <span class="custom-ex-tag" style="font-size: 9px;">TOP</span>' : ''}</div>
             <div class="recipe-meta"><span>${rec.kcal} kcal</span><span>${rec.p}g Protein</span><span>${rec.time}</span></div>
+            ${goalBadges.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">${goalBadges.join('')}</div>` : ''}
           </div>
           <div class="recipe-arrow">›</div>
         </div>
@@ -3610,18 +3752,45 @@ function renderTraining() {
 
 function renderShopping() {
   const container = document.getElementById('shoppingList');
-  Object.keys(SHOPPING).forEach(group => {
+  container.innerHTML = '';
+
+  const profile = loadProfile();
+  const goal = profile?.goal || 'muscle';
+  const config = SHOPPING_BY_GOAL[goal] || SHOPPING_BY_GOAL.muscle;
+
+  // Update section desc
+  const descEl = document.querySelector('#einkauf .section-desc');
+  if (descEl) {
+    descEl.innerHTML = `<span style="color:var(--accent);font-weight:600;">${config.label}</span> · Hofer · ca. ${config.weeklyEst}/Woche · ${config.desc}`;
+  }
+
+  // Goal banner
+  const banner = document.createElement('div');
+  const goalColors = { muscle: '#d4ff3a', cut: '#ff6b6b', recomp: '#6bcbff', maintain: '#a0ffa0' };
+  const color = goalColors[goal] || '#d4ff3a';
+  banner.style.cssText = `background:rgba(${goal==='cut'?'255,107,107':'212,255,58'},0.07);border:1px solid ${color};border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13px;`;
+  const tips = {
+    muscle: '🏋️ <strong>Muskelaufbau:</strong> Kalorienüberschuss ~300–400 kcal. Iss genug – Muskeln wachsen nicht aus dem Nichts.',
+    cut: '🔥 <strong>Definition:</strong> Kaloriendefizit ~400 kcal. Protein hoch halten damit Muskeln erhalten bleiben. Kohlenhydrate am besten nach dem Training.',
+    recomp: '⚖️ <strong>Recomp:</strong> Moderate Kalorien. Sehr hohes Protein (2,2g/kg). Geduld – geht langsamer als reines Bulken oder Cutten.',
+    maintain: '✅ <strong>Halten:</strong> Ausgewogene Ernährung, Protein hoch genug für Muskelerhalt.'
+  };
+  banner.innerHTML = tips[goal] || tips.muscle;
+  container.appendChild(banner);
+
+  Object.keys(config.lists).forEach(group => {
     const groupEl = document.createElement('div');
     groupEl.className = 'shopping-group';
     let html = `<div class="shopping-group-title">${group}</div>`;
-    SHOPPING[group].forEach((item, idx) => {
-      const id = 'shop-' + group.replace(/\s/g,'') + '-' + idx;
+    config.lists[group].forEach((item, idx) => {
+      const id = 'shop-' + goal + '-' + group.replace(/\s/g,'') + '-' + idx;
       const checked = localStorage.getItem(id) === '1';
       html += `<div class="shop-item"><div class="shop-checkbox ${checked ? 'checked' : ''}" data-shopid="${id}"></div><div class="shop-name">${item.name}</div><div class="shop-price">${item.price}</div></div>`;
     });
     groupEl.innerHTML = html;
     container.appendChild(groupEl);
   });
+
   document.querySelectorAll('.shop-checkbox').forEach(box => {
     box.addEventListener('click', () => {
       const id = box.dataset.shopid;
