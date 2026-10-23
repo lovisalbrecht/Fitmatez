@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon.png">
-<title>FitMatez · 4-Wochen Plan</title>
+<title>FitMatez · 4-Wochen Plan v8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600&family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1333,7 +1333,10 @@ function setupOnboarding() {
   
   // Dynamic file input per slot — iOS PWA fix (static inputs lose change events)
   function openPhotoPickerForAngle(angle) {
+    const slotDbg = document.getElementById('photoSlot-' + angle);
+    if (slotDbg) slotDbg.style.outline = '3px solid lime';
     openPhotoPicker(file => {
+      if (slotDbg) slotDbg.style.outline = '3px solid orange';
       const keyInput = document.getElementById('onbApiKeyInput');
       if (keyInput && keyInput.value.trim()) localStorage.setItem('aiKey', keyInput.value.trim());
       const reader = new FileReader();
