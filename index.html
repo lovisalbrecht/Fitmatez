@@ -600,10 +600,9 @@
       
       <!-- AI Food Photo -->
       <div style="margin-top: 8px;">
-        <input type="file" id="foodPhotoInput" accept="image/*" style="display:none">
-        <label for="foodPhotoInput" class="photo-upload-btn" style="padding: 12px; font-size: 12px;">
+        <button id="foodPhotoBtn" class="photo-upload-btn" style="padding: 12px; font-size: 12px; width: 100%; cursor: pointer; border: none; text-align: center;">
           📷 Essen fotografieren · KI erkennt Nährwerte
-        </label>
+        </button>
         <div id="foodAiResult"></div>
       </div>
       
@@ -5147,60 +5146,84 @@ setTimeout(() => {
   const profileBtn = document.getElementById('editProfileBtn');
   if (profileBtn) profileBtn.addEventListener('click', showProfileEdit);
   
-  // Food photo AI — listen to both 'change' and 'input' (iOS PWA fix)
-  const foodPhotoInput = document.getElementById('foodPhotoInput');
-  if (foodPhotoInput) {
+  // Food photo AI — dynamic input creation (most reliable on iOS PWA)
+  const foodPhotoBtn = document.getElementById('foodPhotoBtn');
+  if (foodPhotoBtn) {
     let _foodBusy = false;
-    function handleFoodPhoto(e) {
-      const file = e.target.files && e.target.files[0];
-      if (!file || _foodBusy) return;
-      _foodBusy = true;
-      const resultEl = document.getElementById('foodAiResult');
-      const hasWorker = typeof AI_PROXY_URL !== 'undefined' && AI_PROXY_URL && AI_PROXY_URL.startsWith('https://');
-      const apiKey = localStorage.getItem('aiKey');
-      if (!apiKey && !hasWorker) {
-        resultEl.innerHTML = `<div class="ai-disabled-banner"><strong>KI-Analyse nicht aktiv.</strong> Klicke oben rechts auf "Profil" → trag deinen Google Gemini API-Key ein (kostenlos auf <strong>aistudio.google.com</strong>), dann erkennt die KI dein Essen automatisch.</div>`;
-        foodPhotoInput.value = '';
-        _foodBusy = false;
-        return;
-      }
-      resultEl.innerHTML = '<div class="ai-loading">Foto wird geladen…</div>';
-      const reader = new FileReader();
-      reader.onerror = () => {
-        resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Foto konnte nicht gelesen werden.</div>';
-        _foodBusy = false;
-      };
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onerror = () => {
-          resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Bild konnte nicht verarbeitet werden. Versuche ein anderes Foto.</div>';
+    foodPhotoBtn.addEventListener('click', () => {
+      if (_foodBusy) return;
+      // Create a fresh input element each click — avoids iOS PWA event-loss bug
+      const tmpInput = document.createElement('input');
+      tmpInput.type = 'file';
+      tmpInput.accept = 'image/*';
+      tmpInput.setAttribute('capture', 'environment');
+      tmpInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
+      document.body.appendChild(tmpInput);
+
+      let _handled = false;
+      function processFile() {
+        if (_handled) return;
+        const file = tmpInput.files && tmpInput.files[0];
+        if (!file) {
+          if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
+          return;
+        }
+        _handled = true;
+        _foodBusy = true;
+        const resultEl = document.getElementById('foodAiResult');
+        const hasWorker = typeof AI_PROXY_URL !== 'undefined' && AI_PROXY_URL && AI_PROXY_URL.startsWith('https://');
+        const apiKey = localStorage.getItem('aiKey');
+        if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
+        if (!apiKey && !hasWorker) {
+          resultEl.innerHTML = `<div class="ai-disabled-banner"><strong>KI-Analyse nicht aktiv.</strong> Tipp oben auf "Profil" und trag deinen Gemini API-Key ein.</div>`;
+          _foodBusy = false;
+          return;
+        }
+        resultEl.innerHTML = '<div class="ai-loading">Foto wird geladen…</div>';
+        const reader = new FileReader();
+        reader.onerror = () => {
+          resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Foto konnte nicht gelesen werden.</div>';
           _foodBusy = false;
         };
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const maxDim = 800;
-            let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-            if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
-            else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
-            if (w < 1) w = 1; if (h < 1) h = 1;
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            const compressed = canvas.toDataURL('image/jpeg', 0.7);
-            analyzeFoodPhoto(compressed, resultEl);
-          } catch(err) {
-            resultEl.innerHTML = `<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>${err.message}</div>`;
-          } finally {
-            foodPhotoInput.value = '';
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onerror = () => {
+            resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Bild konnte nicht verarbeitet werden.</div>';
             _foodBusy = false;
-          }
+          };
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const maxDim = 800;
+              let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+              if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+              else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
+              if (w < 1) w = 1; if (h < 1) h = 1;
+              canvas.width = w; canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              const compressed = canvas.toDataURL('image/jpeg', 0.7);
+              analyzeFoodPhoto(compressed, resultEl);
+            } catch(err) {
+              resultEl.innerHTML = `<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>${err.message}</div>`;
+            } finally {
+              _foodBusy = false;
+            }
+          };
+          img.src = ev.target.result;
         };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-    foodPhotoInput.addEventListener('change', handleFoodPhoto);
-    foodPhotoInput.addEventListener('input', handleFoodPhoto);
+        reader.readAsDataURL(file);
+      }
+
+      tmpInput.addEventListener('change', processFile);
+      tmpInput.addEventListener('input', processFile);
+      tmpInput.click();
+
+      // Cleanup after 2 minutes if nothing happened
+      setTimeout(() => {
+        if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
+        _foodBusy = false;
+      }, 120000);
+    });
   }
   
   // === ONBOARDING FIRST (highest priority) ===
