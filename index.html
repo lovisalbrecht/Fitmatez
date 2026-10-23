@@ -569,8 +569,7 @@
     <div class="photos-card">
       <div class="verlauf-card-title">Wöchentliche Fotos</div>
       <div class="verlauf-subtext" style="margin-bottom: 12px;">Mach jeden Sonntag ein Foto bei gleicher Beleuchtung und Pose. Veränderungen werden sichtbar.</div>
-      <input type="file" id="photoInput" class="photo-input-hidden" accept="image/*" capture="environment">
-      <label for="photoInput" class="photo-upload-btn">+ Foto hinzufügen</label>
+      <button id="photoInput" class="photo-upload-btn" style="border:none;cursor:pointer;width:100%;">+ Foto hinzufügen</button>
       <div class="photos-grid" id="photosGrid" style="margin-top: 14px;"></div>
     </div>
     
@@ -990,33 +989,26 @@
         <div class="photo-progress" id="photoProgress"><strong>0/4</strong> Fotos hochgeladen · Für beste Analyse alle 4 Perspektiven</div>
         
         <div class="photo-grid">
-          <input type="file" id="photoInput-front" accept="image/*" capture="environment" style="display:none" data-angle="front">
-          <label for="photoInput-front" class="photo-slot" id="photoSlot-front" data-angle="front">
+          <div class="photo-slot" id="photoSlot-front" data-angle="front" role="button" style="cursor:pointer;">
             <div class="photo-slot-icon">↑</div>
             <div class="photo-slot-text">Vorne</div>
             <div class="photo-slot-label">Vorne</div>
-          </label>
-          
-          <input type="file" id="photoInput-back" accept="image/*" capture="environment" style="display:none" data-angle="back">
-          <label for="photoInput-back" class="photo-slot" id="photoSlot-back" data-angle="back">
+          </div>
+          <div class="photo-slot" id="photoSlot-back" data-angle="back" role="button" style="cursor:pointer;">
             <div class="photo-slot-icon">↓</div>
             <div class="photo-slot-text">Rücken</div>
             <div class="photo-slot-label">Rücken</div>
-          </label>
-          
-          <input type="file" id="photoInput-left" accept="image/*" capture="environment" style="display:none" data-angle="left">
-          <label for="photoInput-left" class="photo-slot" id="photoSlot-left" data-angle="left">
+          </div>
+          <div class="photo-slot" id="photoSlot-left" data-angle="left" role="button" style="cursor:pointer;">
             <div class="photo-slot-icon">←</div>
             <div class="photo-slot-text">Links</div>
             <div class="photo-slot-label">Links</div>
-          </label>
-          
-          <input type="file" id="photoInput-right" accept="image/*" capture="environment" style="display:none" data-angle="right">
-          <label for="photoInput-right" class="photo-slot" id="photoSlot-right" data-angle="right">
+          </div>
+          <div class="photo-slot" id="photoSlot-right" data-angle="right" role="button" style="cursor:pointer;">
             <div class="photo-slot-icon">→</div>
             <div class="photo-slot-text">Rechts</div>
             <div class="photo-slot-label">Rechts</div>
-          </label>
+          </div>
         </div>
         
         <button class="btn" id="startAnalysisBtn" style="width: 100%; opacity: 0.5; pointer-events: none;" disabled>KI-Analyse starten (0/4 Fotos)</button>
@@ -1339,40 +1331,39 @@ function setupOnboarding() {
     }
   }
   
-  angles.forEach(angle => {
-    const inputEl = document.getElementById('photoInput-' + angle);
-    if (!inputEl) return;
-    inputEl.addEventListener('change', (e) => {
-      const file = e.target.files[0];
+  // Dynamic file input per slot — iOS PWA fix (static inputs lose change events)
+  function openPhotoPickerForAngle(angle) {
+    const tmp = document.createElement('input');
+    tmp.type = 'file';
+    tmp.accept = 'image/*';
+    tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(tmp);
+    let _done = false;
+    function onFile() {
+      if (_done) return;
+      const file = tmp.files && tmp.files[0];
+      if (document.body.contains(tmp)) document.body.removeChild(tmp);
       if (!file) return;
-      
-      // Save API key if entered (only first time)
+      _done = true;
       const keyInput = document.getElementById('onbApiKeyInput');
-      if (keyInput && keyInput.value.trim()) {
-        localStorage.setItem('aiKey', keyInput.value.trim());
-      }
-      
+      if (keyInput && keyInput.value.trim()) localStorage.setItem('aiKey', keyInput.value.trim());
       const reader = new FileReader();
       reader.onload = (ev) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const maxDim = 500;
-          let w = img.width, h = img.height;
-          if (w > h && w > maxDim) { h = h * (maxDim / w); w = maxDim; }
-          else if (h > maxDim) { w = w * (maxDim / h); h = maxDim; }
+          let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+          else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
+          if (w < 1) w = 1; if (h < 1) h = 1;
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
           const compressed = canvas.toDataURL('image/jpeg', 0.7);
-          
-          // Store this angle
           onbData.photos[angle] = compressed;
-          
-          // Update slot UI
           const slotEl = document.getElementById('photoSlot-' + angle);
           if (slotEl) {
             slotEl.classList.add('filled');
-            // Remove old image if any, then add new
             const existingImg = slotEl.querySelector('img');
             if (existingImg) existingImg.remove();
             const newImg = document.createElement('img');
@@ -1380,13 +1371,21 @@ function setupOnboarding() {
             newImg.alt = angleLabels[angle];
             slotEl.insertBefore(newImg, slotEl.firstChild);
           }
-          
           updatePhotoProgress();
         };
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
-    });
+    }
+    tmp.addEventListener('change', onFile);
+    tmp.addEventListener('input', onFile);
+    tmp.click();
+    setTimeout(() => { if (document.body.contains(tmp)) document.body.removeChild(tmp); }, 120000);
+  }
+
+  angles.forEach(angle => {
+    const slotEl = document.getElementById('photoSlot-' + angle);
+    if (slotEl) slotEl.addEventListener('click', () => openPhotoPickerForAngle(angle));
   });
   
   // Start analysis button
@@ -5100,36 +5099,44 @@ setTimeout(() => {
   });
   if (wInput) wInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') wBtn.click(); });
   
-  // Photo upload
-  const photoInput = document.getElementById('photoInput');
-  if (photoInput) photoInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      // Resize image to save space
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxDim = 800;
-        let w = img.width, h = img.height;
-        if (w > h) {
-          if (w > maxDim) { h = h * (maxDim / w); w = maxDim; }
-        } else {
-          if (h > maxDim) { w = w * (maxDim / h); h = maxDim; }
-        }
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        savePhoto(compressed);
-        renderPhotos();
-        photoInput.value = '';
+  // Photo upload — dynamic input for iOS PWA reliability
+  const photoInputBtn = document.getElementById('photoInput');
+  if (photoInputBtn) photoInputBtn.addEventListener('click', () => {
+    const tmp = document.createElement('input');
+    tmp.type = 'file';
+    tmp.accept = 'image/*';
+    tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(tmp);
+    let _done = false;
+    function onFile() {
+      if (_done) return;
+      const file = tmp.files && tmp.files[0];
+      if (document.body.contains(tmp)) document.body.removeChild(tmp);
+      if (!file) return;
+      _done = true;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 800;
+          let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+          else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.7);
+          savePhoto(compressed);
+          renderPhotos();
+        };
+        img.src = ev.target.result;
       };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    }
+    tmp.addEventListener('change', onFile);
+    tmp.addEventListener('input', onFile);
+    tmp.click();
+    setTimeout(() => { if (document.body.contains(tmp)) document.body.removeChild(tmp); }, 120000);
   });
   
   // Exercise history selector
