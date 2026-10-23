@@ -1333,18 +1333,7 @@ function setupOnboarding() {
   
   // Dynamic file input per slot — iOS PWA fix (static inputs lose change events)
   function openPhotoPickerForAngle(angle) {
-    const tmp = document.createElement('input');
-    tmp.type = 'file';
-    tmp.accept = 'image/*';
-    tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
-    document.body.appendChild(tmp);
-    let _done = false;
-    function onFile() {
-      if (_done) return;
-      const file = tmp.files && tmp.files[0];
-      if (document.body.contains(tmp)) document.body.removeChild(tmp);
-      if (!file) return;
-      _done = true;
+    openPhotoPicker(file => {
       const keyInput = document.getElementById('onbApiKeyInput');
       if (keyInput && keyInput.value.trim()) localStorage.setItem('aiKey', keyInput.value.trim());
       const reader = new FileReader();
@@ -1376,11 +1365,7 @@ function setupOnboarding() {
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
-    }
-    tmp.addEventListener('change', onFile);
-    tmp.addEventListener('input', onFile);
-    tmp.click();
-    setTimeout(() => { if (document.body.contains(tmp)) document.body.removeChild(tmp); }, 120000);
+    });
   }
 
   angles.forEach(angle => {
@@ -1488,6 +1473,50 @@ function setupOnboarding() {
   });
 }
   
+// ============ iOS PWA FILE PICKER HELPER ============
+// On iOS PWA, change/input events on file inputs are unreliable.
+// Solution: create a fresh input, listen to events AND to window focus
+// (which fires when the app regains control after the camera closes).
+function openPhotoPicker(onFileSelected) {
+  const tmp = document.createElement('input');
+  tmp.type = 'file';
+  tmp.accept = 'image/*';
+  tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+  document.body.appendChild(tmp);
+
+  let _done = false;
+
+  function handle() {
+    if (_done) return;
+    const file = tmp.files && tmp.files[0];
+    if (!file) return; // no file yet (e.g. focus fired before picker closed)
+    _done = true;
+    cleanup();
+    if (document.body.contains(tmp)) document.body.removeChild(tmp);
+    onFileSelected(file);
+  }
+
+  // iOS PWA fallback: check files when window regains focus after camera
+  function onFocus() { setTimeout(handle, 300); }
+  function onVisible() { if (document.visibilityState === 'visible') setTimeout(handle, 300); }
+
+  function cleanup() {
+    window.removeEventListener('focus', onFocus);
+    document.removeEventListener('visibilitychange', onVisible);
+  }
+
+  tmp.addEventListener('change', handle);
+  tmp.addEventListener('input', handle);
+  window.addEventListener('focus', onFocus);
+  document.addEventListener('visibilitychange', onVisible);
+  tmp.click();
+
+  setTimeout(() => {
+    cleanup();
+    if (document.body.contains(tmp)) document.body.removeChild(tmp);
+  }, 120000);
+}
+
 // ============ AI INTEGRATION (Google Gemini - free tier) ============
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash';
@@ -5099,21 +5128,10 @@ setTimeout(() => {
   });
   if (wInput) wInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') wBtn.click(); });
   
-  // Photo upload — dynamic input for iOS PWA reliability
+  // Photo upload
   const photoInputBtn = document.getElementById('photoInput');
   if (photoInputBtn) photoInputBtn.addEventListener('click', () => {
-    const tmp = document.createElement('input');
-    tmp.type = 'file';
-    tmp.accept = 'image/*';
-    tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
-    document.body.appendChild(tmp);
-    let _done = false;
-    function onFile() {
-      if (_done) return;
-      const file = tmp.files && tmp.files[0];
-      if (document.body.contains(tmp)) document.body.removeChild(tmp);
-      if (!file) return;
-      _done = true;
+    openPhotoPicker(file => {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const img = new Image();
@@ -5132,11 +5150,7 @@ setTimeout(() => {
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
-    }
-    tmp.addEventListener('change', onFile);
-    tmp.addEventListener('input', onFile);
-    tmp.click();
-    setTimeout(() => { if (document.body.contains(tmp)) document.body.removeChild(tmp); }, 120000);
+    });
   });
   
   // Exercise history selector
@@ -5158,29 +5172,11 @@ setTimeout(() => {
   if (foodPhotoBtn) {
     let _foodBusy = false;
     foodPhotoBtn.addEventListener('click', () => {
-      const resultEl = document.getElementById('foodAiResult');
       if (_foodBusy) return;
-      resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 1: Kamera wird geöffnet…</div>';
-
-      const tmpInput = document.createElement('input');
-      tmpInput.type = 'file';
-      tmpInput.accept = 'image/*';
-      // no capture attr — more reliable event firing on iOS
-      tmpInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
-      document.body.appendChild(tmpInput);
-
-      let _handled = false;
-      function processFile() {
-        if (_handled) return;
-        const file = tmpInput.files && tmpInput.files[0];
-        if (!file) {
-          resultEl.innerHTML = '';
-          if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
-          return;
-        }
-        _handled = true;
-        _foodBusy = true;
-        if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
+      const resultEl = document.getElementById('foodAiResult');
+      resultEl.innerHTML = '<div class="ai-loading">📷 Kamera wird geöffnet…</div>';
+      _foodBusy = true;
+      openPhotoPicker(file => {
         const hasWorker = typeof AI_PROXY_URL !== 'undefined' && AI_PROXY_URL && AI_PROXY_URL.startsWith('https://');
         const apiKey = localStorage.getItem('aiKey');
         if (!apiKey && !hasWorker) {
@@ -5188,21 +5184,20 @@ setTimeout(() => {
           _foodBusy = false;
           return;
         }
-        resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 2: Foto wird eingelesen… (${Math.round(file.size/1024)} KB)</div>'.replace('${Math.round(file.size/1024)}', Math.round(file.size/1024));
+        resultEl.innerHTML = `<div class="ai-loading">Foto wird verarbeitet… (${Math.round(file.size/1024)} KB)</div>`;
         const reader = new FileReader();
         reader.onerror = () => {
-          resultEl.innerHTML = '<div class="ai-error"><strong>Fehler Schritt 2:</strong><br>Foto konnte nicht gelesen werden.</div>';
+          resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Foto konnte nicht gelesen werden.</div>';
           _foodBusy = false;
         };
         reader.onload = (ev) => {
-          resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 3: Bild wird verarbeitet…</div>';
           const img = new Image();
           img.onerror = () => {
-            resultEl.innerHTML = '<div class="ai-error"><strong>Fehler Schritt 3:</strong><br>Bild konnte nicht verarbeitet werden.</div>';
+            resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Bild konnte nicht verarbeitet werden.</div>';
             _foodBusy = false;
           };
           img.onload = () => {
-            resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 4: KI analysiert… bitte warten</div>';
+            resultEl.innerHTML = '<div class="ai-loading">KI analysiert… bitte warten</div>';
             try {
               const canvas = document.createElement('canvas');
               const maxDim = 800;
@@ -5215,7 +5210,7 @@ setTimeout(() => {
               const compressed = canvas.toDataURL('image/jpeg', 0.7);
               analyzeFoodPhoto(compressed, resultEl);
             } catch(err) {
-              resultEl.innerHTML = `<div class="ai-error"><strong>Fehler Schritt 4:</strong><br>${err.message}</div>`;
+              resultEl.innerHTML = `<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>${err.message}</div>`;
             } finally {
               _foodBusy = false;
             }
@@ -5223,17 +5218,7 @@ setTimeout(() => {
           img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
-      }
-
-      tmpInput.addEventListener('change', processFile);
-      tmpInput.addEventListener('input', processFile);
-      tmpInput.click();
-
-      // Cleanup after 2 minutes if nothing happened
-      setTimeout(() => {
-        if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
-        _foodBusy = false;
-      }, 120000);
+      });
     });
   }
   
