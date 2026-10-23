@@ -1823,20 +1823,16 @@ function applyAiFocusMuscles(focusMuscles) {
 async function analyzeFoodPhoto(imageBase64, resultEl) {
   resultEl.innerHTML = '<div class="ai-loading">KI erkennt das Essen · ~5 Sek</div>';
   try {
-    const prompt = `Du analysierst ein Foto von Essen. Identifiziere alle erkennbaren Speisen und schätze die Nährwerte realistisch.
+    const prompt = `Analysiere dieses Foto und erkenne alle sichtbaren Lebensmittel und Gerichte. Schätze Portionsgrößen und Nährwerte realistisch anhand der Bildproportionen.
 
-Antworte AUSSCHLIESSLICH als valides JSON. KEIN Markdown, KEINE Code-Blöcke, KEIN Text außerhalb:
+Antworte NUR mit folgendem JSON-Format (kein Markdown, kein Text drumherum):
+{"items":[{"name":"<ERKANNTES_LEBENSMITTEL>","gram":<GESCHÄTZTE_GRAMM>,"protein":<PROTEIN_IN_G>,"kcal":<KALORIEN>}],"total_protein":<GESAMT_PROTEIN>,"total_kcal":<GESAMT_KALORIEN>}
 
-{
-  "items": [
-    {"name": "Hähnchenbrust", "gram": 150, "protein": 47, "kcal": 248},
-    {"name": "Reis gekocht", "gram": 200, "protein": 5, "kcal": 260}
-  ],
-  "total_protein": 52,
-  "total_kcal": 508
-}
-
-Wenn unsicher: konservative Schätzungen. Lieber realistische als optimistische Mengen.`;
+Regeln:
+- Verwende die TATSÄCHLICH im Bild sichtbaren Lebensmittel, NICHT die Beispiele
+- Schätze Mengen konservativ (lieber etwas weniger als zu viel)
+- Wenn kein Essen erkennbar: {"items":[],"total_protein":0,"total_kcal":0}
+- Gib alle Werte als Zahlen (kein Text in den Zahlenfeldern)`;
     
     const result = await callGemini(prompt, imageBase64);
     
