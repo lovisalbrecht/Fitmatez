@@ -121,6 +121,36 @@
   .shop-checkbox.checked::after { content: '✓'; position: absolute; color: #000; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; }
   .shop-name { flex: 1; }
   .shop-checkbox.checked + .shop-name { text-decoration: line-through; color: var(--text-mute); }
+  /* SHOP MODE TABS */
+  .shop-mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .shop-mode-tab { flex: 1; padding: 10px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg-card); color: var(--text-dim); font-size: 13px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+  .shop-mode-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(212,255,58,0.07); }
+  /* MEAL PICKER */
+  .meal-picker-cat { margin-bottom: 16px; }
+  .meal-picker-cat-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .meal-pick-card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+  .meal-pick-card.selected { border-color: var(--accent); background: rgba(212,255,58,0.06); }
+  .meal-pick-check { width: 20px; height: 20px; border: 1.5px solid var(--border); border-radius: 5px; flex-shrink: 0; position: relative; transition: all 0.2s; }
+  .meal-pick-card.selected .meal-pick-check { background: var(--accent); border-color: var(--accent); }
+  .meal-pick-card.selected .meal-pick-check::after { content:'✓'; position:absolute; color:#000; font-weight:bold; top:50%; left:50%; transform:translate(-50%,-50%); font-size:12px; }
+  .meal-pick-info { flex: 1; }
+  .meal-pick-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .meal-pick-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .meal-pick-cost { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .meal-result-header { background: rgba(212,255,58,0.07); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin: 16px 0 12px; font-size: 13px; }
+  /* FRIDGE BAR */
+  .fridge-bar { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
+  .fridge-bar-header { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text); }
+  .fridge-arrow { margin-left: auto; font-size: 18px; color: var(--text-dim); transition: transform 0.2s; }
+  .fridge-arrow.open { transform: rotate(90deg); }
+  .fridge-badge { background: var(--accent); color: #000; border-radius: 20px; font-size: 11px; font-weight: 700; padding: 1px 7px; }
+  .fridge-chips-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .fridge-chip { padding: 6px 12px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all 0.2s; background: var(--bg-elev); }
+  .fridge-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(212,255,58,0.1); }
+  .fridge-clear { margin-top: 10px; font-size: 12px; color: var(--text-mute); cursor: pointer; text-decoration: underline; }
+  .recipe-match-bar { display: flex; gap: 4px; align-items: center; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
+  .recipe-match-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+  .recipe-match-dot.hit { background: var(--accent); }
   .shop-price { color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
   
   /* TRAINING */
@@ -579,7 +609,15 @@
   <!-- REZEPTE -->
   <div class="section" id="rezepte">
     <div class="section-title">Rezepte</div>
-    <div class="section-desc">Tap für Zutaten & Anleitung · Alle proteinreich · Hofer/Spar</div>
+    <div class="section-desc">Tap für Zutaten & Anleitung · Alle proteinreich · Hofer</div>
+    <div class="fridge-bar" id="fridgeBar">
+      <div class="fridge-bar-header" id="fridgeToggle">
+        <span>🧊 Was hast du zu Hause?</span>
+        <span class="fridge-badge" id="fridgeCount" style="display:none;"></span>
+        <span class="fridge-arrow" id="fridgeArrow">›</span>
+      </div>
+      <div id="fridgeChips" style="display:none;"></div>
+    </div>
     <div class="recipe-cat-tabs">
       <button class="recipe-cat-tab active" data-cat="fruehstueck">Frühstück</button>
       <button class="recipe-cat-tab" data-cat="schnell">Schnell (5-15min)</button>
@@ -728,7 +766,16 @@
   <!-- EINKAUF -->
   <div class="section" id="einkauf">
     <div class="section-title">Wocheneinkauf</div>
-    <div class="section-desc">Hofer & Spar · ~50-65€/Woche · Abhaken beim Einkaufen</div>
+    <div class="section-desc" id="shopDesc">Hofer · Abhaken beim Einkaufen</div>
+    <div class="shop-mode-tabs">
+      <button class="shop-mode-tab active" data-mode="standard">Standard</button>
+      <button class="shop-mode-tab" data-mode="meals">Meine Meals 🍽️</button>
+    </div>
+    <div id="mealPlannerSection" style="display:none;">
+      <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">Wähle deine Gerichte für die Woche → Einkaufsliste wird automatisch erstellt</div>
+      <div id="mealPickerList"></div>
+      <div id="mealShoppingResult"></div>
+    </div>
     <div class="shopping-card" id="shoppingList"></div>
   </div>
   
@@ -2401,6 +2448,263 @@ const EXERCISES = {
   ]
 };
 
+// ============ RECIPE COSTS (per Portion) ============
+const RECIPE_COSTS = {
+  "Shakshuka Protein-Style": "~2,80€", "Protein-Pancakes": "~2,20€",
+  "Quark-Bowl mit Beeren": "~1,80€", "Rührei deluxe mit Avocado-Toast": "~2,50€",
+  "Overnight Oats Protein": "~1,50€", "Topfen-Pfannkuchen (Quarkkeulchen)": "~1,60€",
+  "Flammkuchen Protein": "~3,50€", "Bratkartoffeln mit Spiegelei & Speck": "~2,20€",
+  "Wraps mit Hähnchen": "~3,50€", "Pasta Aglio Olio Protein": "~3,00€",
+  "Air Fryer Lachs + Süßkartoffel-Wedges": "~5,50€", "Hähnchen-Reis-Bowl Asia-Style": "~3,20€",
+  "Thunfisch-Nudeln Blitz": "~2,60€", "Kärntner Kasnudeln Light": "~3,00€",
+  "Faschiertes-Auflauf mit Kartoffeln": "~2,20€ /P.", "Türkische Pizza (Lahmacun) Protein-Style": "~3,50€",
+  "Curry mit Hähnchen & Reis": "~4,00€", "Burrito-Bowl": "~4,00€",
+  "Putenschnitzel mit Petersilkartoffeln": "~5,00€", "Bauernschmaus-Pfanne": "~4,00€",
+  "Gefüllte Paprika": "~1,50€ /P.", "Pizza Protein-Style": "~4,50€",
+  "SONNHOF Ofen-Maishendl mit Reis": "~2,00€ /P.",
+  "Skyr mit Honig & Nüssen": "~1,50€", "Hard-Boiled Eggs Snack Box": "~1,80€",
+  "Tortilla-Chips mit Hüttenkäse-Dip": "~2,50€", "Protein-Toast Avocado": "~1,80€",
+  "Quark-Wraps": "~2,00€", "Bananen-Whey-Shake": "~1,80€",
+  "Protein-Schoko-Pudding": "~1,50€", "Bananen-Mousse": "~1,20€",
+  "Quark-Käsekuchen (No-Bake)": "~1,00€ /P.", "Protein-Energiekugeln": "~0,50€ /St.",
+  "Topfen-Knödel mit Marmelade": "~1,80€"
+};
+
+// ============ INGREDIENT → SHOPPING ITEM MAPPING ============
+const INGREDIENT_MAP = [
+  { key: "maishendl", shopItem: "SONNHOF Maishendl-Kombipack ~1kg", cat: "Protein", price: 5.50 },
+  { key: "hähnchen", shopItem: "SONNHOF Maishendl-Kombipack ~1kg", cat: "Protein", price: 5.50 },
+  { key: "pute", shopItem: "SONNHOF Maishendl-Kombipack ~1kg", cat: "Protein", price: 5.50 },
+  { key: "faschiertes", shopItem: "SONNHOF Faschiertes gemischt 500g", cat: "Protein", price: 5.00 },
+  { key: "thunfisch", shopItem: "ALMARE Thunfisch in Wasser × 4 Dosen", cat: "Protein", price: 4.00 },
+  { key: "lachs", shopItem: "Lachsfilet TK (Hofer)", cat: "Protein", price: 5.00 },
+  { key: "speck", shopItem: "Speck-/Schinkenwürfel (Hofer)", cat: "Protein", price: 2.50 },
+  { key: "eier", shopItem: "Eier 10er Pack", cat: "Protein", price: 2.80 },
+  { key: " ei", shopItem: "Eier 10er Pack", cat: "Protein", price: 2.80 },
+  { key: "topfen", shopItem: "MILSANI Magerquark/Topfen 500g × 4", cat: "Protein", price: 5.60 },
+  { key: "quark", shopItem: "MILSANI Magerquark/Topfen 500g × 4", cat: "Protein", price: 5.60 },
+  { key: "skyr", shopItem: "MILSANI Naturjoghurt/Skyr 500g", cat: "Protein", price: 1.30 },
+  { key: "joghurt", shopItem: "MILSANI Naturjoghurt/Skyr 500g", cat: "Protein", price: 1.30 },
+  { key: "milch", shopItem: "MILSANI Milch 1L × 2", cat: "Protein", price: 2.00 },
+  { key: "feta", shopItem: "Feta 200g (Hofer)", cat: "Protein", price: 1.99 },
+  { key: "mozzarella", shopItem: "Mozzarella light (Hofer)", cat: "Protein", price: 1.99 },
+  { key: "haferflocken", shopItem: "HAPPY HARVEST Haferflocken 500g", cat: "Kohlenhydrate", price: 1.00 },
+  { key: "reis", shopItem: "HAPPY HARVEST Langkornreis 1kg", cat: "Kohlenhydrate", price: 1.50 },
+  { key: "nudeln", shopItem: "HAPPY HARVEST Nudeln 500g × 2", cat: "Kohlenhydrate", price: 1.60 },
+  { key: "toast", shopItem: "HAPPY HARVEST Toastbrot 500g", cat: "Kohlenhydrate", price: 0.95 },
+  { key: "vollkornbrot", shopItem: "HAPPY HARVEST Toastbrot 500g", cat: "Kohlenhydrate", price: 0.95 },
+  { key: "kartoffel", shopItem: "Kartoffeln 2kg", cat: "Kohlenhydrate", price: 2.00 },
+  { key: "süßkartoffel", shopItem: "Süßkartoffeln 1kg", cat: "Kohlenhydrate", price: 2.99 },
+  { key: "wrap", shopItem: "Wraps (Hofer Kühlregal)", cat: "Kohlenhydrate", price: 2.00 },
+  { key: "pizzateig", shopItem: "Pizzateig fertig (Hofer Kühlregal)", cat: "Kohlenhydrate", price: 1.99 },
+  { key: "banane", shopItem: "Bananen 1kg", cat: "Obst & Gemüse", price: 1.30 },
+  { key: "beeren", shopItem: "TK-Beeren 750g", cat: "Obst & Gemüse", price: 2.99 },
+  { key: "tomate", shopItem: "Tomaten 500g + Passierte Tomaten 2×", cat: "Obst & Gemüse", price: 3.40 },
+  { key: "paprika", shopItem: "Paprika 3er Pack", cat: "Obst & Gemüse", price: 1.99 },
+  { key: "brokkoli", shopItem: "TK-Brokkoli 750g", cat: "Obst & Gemüse", price: 1.49 },
+  { key: "spinat", shopItem: "TK-Spinat 750g", cat: "Obst & Gemüse", price: 1.49 },
+  { key: "gurke", shopItem: "Gurken × 2", cat: "Obst & Gemüse", price: 1.58 },
+  { key: "avocado", shopItem: "Avocado × 2", cat: "Obst & Gemüse", price: 3.00 },
+  { key: "champignon", shopItem: "Champignons 400g", cat: "Obst & Gemüse", price: 1.99 },
+  { key: "zucchini", shopItem: "Zucchini", cat: "Obst & Gemüse", price: 0.99 },
+  { key: "karotte", shopItem: "Karotten 500g", cat: "Obst & Gemüse", price: 0.99 },
+  { key: "bohnen", shopItem: "Kidneybohnen Dose (Hofer)", cat: "Vorräte", price: 0.99 },
+  { key: "käse", shopItem: "MILSANI Käse gerieben 200g", cat: "Vorräte", price: 2.49 },
+  { key: "erdnussbutter", shopItem: "Erdnussbutter 400g", cat: "Vorräte", price: 2.49 },
+  { key: "olivenöl", shopItem: "Olivenöl 0,5L", cat: "Vorräte", price: 3.99 },
+  { key: "honig", shopItem: "Honig", cat: "Vorräte", price: 2.49 },
+  { key: "kokosmilch", shopItem: "Kokosmilch (Hofer)", cat: "Vorräte", price: 1.99 },
+];
+
+// ============ FRIDGE FILTER CHIPS ============
+const FRIDGE_CHIPS = [
+  "Hähnchen", "Faschiertes", "Thunfisch", "Lachs", "Eier",
+  "Topfen/Quark", "Skyr/Joghurt", "Milch", "Käse", "Feta",
+  "Haferflocken", "Reis", "Nudeln", "Toast/Brot", "Kartoffeln", "Wraps",
+  "Bananen", "Beeren", "Tomaten", "Paprika", "Brokkoli", "Spinat",
+  "Gurke", "Avocado", "Erdnussbutter", "Olivenöl", "Honig"
+];
+const FRIDGE_KEY_MAP = {
+  "Hähnchen": ["hähnchen","maishendl","pute"], "Faschiertes": ["faschiertes"],
+  "Thunfisch": ["thunfisch"], "Lachs": ["lachs"],
+  "Eier": ["eier"," ei"], "Topfen/Quark": ["topfen","quark"],
+  "Skyr/Joghurt": ["skyr","joghurt"], "Milch": ["milch"],
+  "Käse": ["käse","mozzarella"], "Feta": ["feta"],
+  "Haferflocken": ["haferflocken"], "Reis": ["reis"],
+  "Nudeln": ["nudeln"], "Toast/Brot": ["toast","vollkornbrot"],
+  "Kartoffeln": ["kartoffel"], "Wraps": ["wrap"],
+  "Bananen": ["banane"], "Beeren": ["beeren"],
+  "Tomaten": ["tomate"], "Paprika": ["paprika"],
+  "Brokkoli": ["brokkoli"], "Spinat": ["spinat"],
+  "Gurke": ["gurke"], "Avocado": ["avocado"],
+  "Erdnussbutter": ["erdnussbutter"], "Olivenöl": ["olivenöl"], "Honig": ["honig"]
+};
+
+let fridgeActive = new Set(JSON.parse(localStorage.getItem('fridge') || '[]'));
+let selectedMeals = new Set(JSON.parse(localStorage.getItem('selectedMeals') || '[]'));
+
+function saveFridge() { localStorage.setItem('fridge', JSON.stringify([...fridgeActive])); }
+function saveSelectedMeals() { localStorage.setItem('selectedMeals', JSON.stringify([...selectedMeals])); }
+
+function getRecipeIngMatch(rec) {
+  if (fridgeActive.size === 0) return null;
+  const ingText = rec.ing.join(' ').toLowerCase();
+  let matched = 0;
+  fridgeActive.forEach(chip => {
+    const keys = FRIDGE_KEY_MAP[chip] || [];
+    if (keys.some(k => ingText.includes(k))) matched++;
+  });
+  return { matched, total: fridgeActive.size };
+}
+
+function renderFridgeChips() {
+  const wrap = document.getElementById('fridgeChips');
+  if (!wrap) return;
+  let html = '<div class="fridge-chips-wrap">';
+  FRIDGE_CHIPS.forEach(chip => {
+    html += `<div class="fridge-chip${fridgeActive.has(chip) ? ' active' : ''}" data-chip="${chip}">${chip}</div>`;
+  });
+  html += '</div>';
+  if (fridgeActive.size > 0) html += `<div class="fridge-clear" id="fridgeClear">Alles leeren</div>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.fridge-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = el.dataset.chip;
+      if (fridgeActive.has(c)) fridgeActive.delete(c); else fridgeActive.add(c);
+      saveFridge();
+      renderFridgeChips();
+      updateFridgeBadge();
+      renderRecipes();
+    });
+  });
+  const clearBtn = wrap.querySelector('#fridgeClear');
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    fridgeActive.clear(); saveFridge(); renderFridgeChips(); updateFridgeBadge(); renderRecipes();
+  });
+}
+
+function updateFridgeBadge() {
+  const badge = document.getElementById('fridgeCount');
+  if (!badge) return;
+  if (fridgeActive.size > 0) { badge.textContent = fridgeActive.size; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+
+function initFridgeBar() {
+  const toggle = document.getElementById('fridgeToggle');
+  const chipsEl = document.getElementById('fridgeChips');
+  const arrow = document.getElementById('fridgeArrow');
+  if (!toggle) return;
+  updateFridgeBadge();
+  renderFridgeChips();
+  toggle.addEventListener('click', () => {
+    const open = chipsEl.style.display === 'none';
+    chipsEl.style.display = open ? '' : 'none';
+    if (arrow) arrow.classList.toggle('open', open);
+  });
+}
+
+function renderMealPlanner() {
+  const listEl = document.getElementById('mealPickerList');
+  const resultEl = document.getElementById('mealShoppingResult');
+  if (!listEl) return;
+  const catLabels = { fruehstueck: 'Frühstück', schnell: 'Schnell (5-15 min)', haupt: 'Hauptgerichte', snacks: 'Snacks', suess: 'Süßes' };
+  let html = '';
+  Object.keys(RECIPES).forEach(cat => {
+    html += `<div class="meal-picker-cat"><div class="meal-picker-cat-title">${catLabels[cat]||cat}</div>`;
+    RECIPES[cat].forEach(rec => {
+      const cost = RECIPE_COSTS[rec.name] || '';
+      const sel = selectedMeals.has(rec.name);
+      html += `<div class="meal-pick-card${sel?' selected':''}" data-meal="${rec.name.replace(/"/g,'&quot;')}">
+        <div class="meal-pick-check"></div>
+        <div class="meal-pick-info">
+          <div class="meal-pick-name">${rec.name}</div>
+          <div class="meal-pick-meta">${rec.kcal} kcal · ${rec.p}g Protein · ${rec.time}</div>
+        </div>
+        ${cost ? `<div class="meal-pick-cost">${cost}</div>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('.meal-pick-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const name = card.dataset.meal;
+      if (selectedMeals.has(name)) selectedMeals.delete(name); else selectedMeals.add(name);
+      saveSelectedMeals();
+      card.classList.toggle('selected', selectedMeals.has(name));
+      renderMealShoppingList();
+    });
+  });
+  renderMealShoppingList();
+}
+
+function renderMealShoppingList() {
+  const resultEl = document.getElementById('mealShoppingResult');
+  if (!resultEl) return;
+  if (selectedMeals.size === 0) {
+    resultEl.innerHTML = '<div style="color:var(--text-mute);font-size:13px;text-align:center;padding:20px 0;">Keine Gerichte gewählt. Tippe oben auf Gerichte um deine Einkaufsliste zu erstellen.</div>';
+    return;
+  }
+  const itemMap = {};
+  let totalCost = 0;
+  selectedMeals.forEach(mealName => {
+    let rec = null;
+    Object.values(RECIPES).forEach(arr => arr.forEach(r => { if (r.name === mealName) rec = r; }));
+    if (!rec) return;
+    const ingText = rec.ing.join('\n').toLowerCase();
+    INGREDIENT_MAP.forEach(entry => {
+      if (ingText.includes(entry.key) && !itemMap[entry.shopItem]) {
+        itemMap[entry.shopItem] = { cat: entry.cat, price: entry.price };
+        totalCost += entry.price;
+      }
+    });
+  });
+  const catOrder = ['Protein', 'Kohlenhydrate', 'Obst & Gemüse', 'Vorräte'];
+  const grouped = {};
+  catOrder.forEach(c => grouped[c] = []);
+  Object.entries(itemMap).forEach(([name, data]) => {
+    if (!grouped[data.cat]) grouped[data.cat] = [];
+    grouped[data.cat].push(name);
+  });
+  let html = `<div class="meal-result-header">
+    <strong style="color:var(--accent);">${selectedMeals.size} Gerichte gewählt</strong> · ca. <strong style="color:var(--accent);">€${totalCost.toFixed(2)}</strong> Einkauf
+    <div style="font-size:11px;color:var(--text-mute);margin-top:3px;">Duplikate schon zusammengefasst · Gewürze/Öl nicht eingerechnet</div>
+  </div><div class="shopping-card">`;
+  catOrder.forEach(cat => {
+    if (!grouped[cat] || grouped[cat].length === 0) return;
+    html += `<div class="shopping-group"><div class="shopping-group-title">${cat}</div>`;
+    grouped[cat].forEach((item, idx) => {
+      const id = 'mp-' + item.replace(/\s/g,'').slice(0,20);
+      const checked = localStorage.getItem(id) === '1';
+      html += `<div class="shop-item"><div class="shop-checkbox${checked?' checked':''}" data-shopid="${id}"></div><div class="shop-name">${item}</div></div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  resultEl.innerHTML = html;
+  resultEl.querySelectorAll('.shop-checkbox').forEach(box => {
+    box.addEventListener('click', () => {
+      const id = box.dataset.shopid;
+      if (box.classList.contains('checked')) { box.classList.remove('checked'); localStorage.removeItem(id); }
+      else { box.classList.add('checked'); localStorage.setItem(id, '1'); }
+    });
+  });
+}
+
+function initShopModeTabs() {
+  document.querySelectorAll('.shop-mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.shop-mode-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const mode = tab.dataset.mode;
+      document.getElementById('mealPlannerSection').style.display = mode === 'meals' ? '' : 'none';
+      document.getElementById('shoppingList').style.display = mode === 'standard' ? '' : 'none';
+      if (mode === 'meals') renderMealPlanner();
+    });
+  });
+}
+
 const SHOPPING_BY_GOAL = {
   muscle: {
     label: "Muskelaufbau",
@@ -2638,8 +2942,16 @@ function renderRecipes() {
     if (!container) return;
     container.innerHTML = '';
     
-    // Sort recipes by relevance
-    const sortedRecipes = [...RECIPES[cat]].sort((a, b) => scoreRecipe(b) - scoreRecipe(a));
+    // Sort recipes — fridge match first (when active), then by goal relevance
+    const sortedRecipes = [...RECIPES[cat]].sort((a, b) => {
+      if (fridgeActive.size > 0) {
+        const mA = getRecipeIngMatch(a); const mB = getRecipeIngMatch(b);
+        const pA = mA ? mA.matched / mA.total : 0;
+        const pB = mB ? mB.matched / mB.total : 0;
+        if (pB !== pA) return pB - pA;
+      }
+      return scoreRecipe(b) - scoreRecipe(a);
+    });
     
     // Show goal indicator at top
     if (profile) {
@@ -2666,12 +2978,29 @@ function renderRecipes() {
       if (proteinRatio >= 0.055 && rec.kcal <= 650) goalBadges.push('<span style="background:rgba(255,107,107,0.15);color:#ff8a8a;border:1px solid #ff6b6b;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">CUT</span>');
       if (rec.p >= 35 && rec.kcal <= 750) goalBadges.push('<span style="background:rgba(107,203,255,0.15);color:#6bcbff;border:1px solid #6bcbff;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">RECOMP</span>');
 
+      // Cost
+      const cost = RECIPE_COSTS[rec.name];
+
+      // Fridge match
+      const match = getRecipeIngMatch(rec);
+      let matchHTML = '';
+      if (match && match.total > 0) {
+        const pct = Math.round((match.matched / match.total) * 100);
+        const dots = [...fridgeActive].map(chip => {
+          const keys = FRIDGE_KEY_MAP[chip] || [];
+          const hit = keys.some(k => rec.ing.join(' ').toLowerCase().includes(k));
+          return `<div class="recipe-match-dot${hit?' hit':''}"></div>`;
+        }).join('');
+        matchHTML = `<div class="recipe-match-bar">${dots}<span style="margin-left:4px;">${match.matched}/${match.total} vorhanden</span></div>`;
+      }
+
       card.innerHTML = `
         <div class="recipe-header">
           <div class="recipe-main">
             <div class="recipe-name">${rec.name}${isTopMatch ? ' <span class="custom-ex-tag" style="font-size: 9px;">TOP</span>' : ''}</div>
-            <div class="recipe-meta"><span>${rec.kcal} kcal</span><span>${rec.p}g Protein</span><span>${rec.time}</span></div>
+            <div class="recipe-meta"><span>${rec.kcal} kcal</span><span>${rec.p}g Protein</span><span>${rec.time}</span>${cost ? `<span style="color:var(--accent);font-weight:700;">${cost}</span>` : ''}</div>
             ${goalBadges.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">${goalBadges.join('')}</div>` : ''}
+            ${matchHTML}
           </div>
           <div class="recipe-arrow">›</div>
         </div>
@@ -4809,6 +5138,8 @@ renderCalendar();
 renderWeightGraph();
 renderPhotos();
 updateVerlaufStats();
+initFridgeBar();
+initShopModeTabs();
 </script>
 </body>
 </html>
