@@ -109,6 +109,7 @@
   .ing-check.checked { background: var(--accent); border-color: var(--accent); }
   .ing-check.checked::after { content: '✓'; position: absolute; color: #000; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 11px; }
   .ing-text.done { text-decoration: line-through; color: var(--text-mute); }
+  .ing-price { font-size: 11px; color: var(--text-mute); margin-left: auto; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; }
   .recipe-goal-filter { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
   .recipe-show-all { font-size: 12px; color: var(--text-mute); cursor: pointer; text-decoration: underline; margin-left: auto; }
   .recipe-steps { font-size: 13px; line-height: 1.7; color: var(--text-dim); counter-reset: step; }
@@ -599,7 +600,7 @@
       
       <!-- AI Food Photo -->
       <div style="margin-top: 8px;">
-        <input type="file" id="foodPhotoInput" accept="image/*" capture="environment" style="display:none">
+        <input type="file" id="foodPhotoInput" accept="image/*" style="display:none">
         <label for="foodPhotoInput" class="photo-upload-btn" style="padding: 12px; font-size: 12px;">
           📷 Essen fotografieren · KI erkennt Nährwerte
         </label>
@@ -1562,11 +1563,17 @@ async function callGemini(prompt, imageBase64) {
         body.image = imageBase64;
       }
       
-      const response = await fetch(AI_PROXY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const _ctrl = new AbortController();
+      const _tid = setTimeout(() => _ctrl.abort(), 60000);
+      let response;
+      try {
+        response = await fetch(AI_PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: _ctrl.signal
+        });
+      } finally { clearTimeout(_tid); }
       
       if (!response.ok) {
         let errMsg = 'Worker-Fehler';
@@ -1588,6 +1595,9 @@ async function callGemini(prompt, imageBase64) {
       if (!data.text) throw new Error('Leere Antwort von der KI. Versuch es nochmal.');
       return data.text;
     } catch (e) {
+      if (e.name === 'AbortError') {
+        throw new Error('Zeitüberschreitung – KI hat zu lange gebraucht. Versuche es erneut.');
+      }
       if (e.name === 'TypeError') {
         throw new Error('Keine Internetverbindung oder Server nicht erreichbar.');
       }
@@ -1873,7 +1883,7 @@ function applyAiFocusMuscles(focusMuscles) {
 }
 
 async function analyzeFoodPhoto(imageBase64, resultEl) {
-  resultEl.innerHTML = '<div class="ai-loading">KI erkennt das Essen · ~5 Sek</div>';
+  resultEl.innerHTML = '<div class="ai-loading">KI erkennt das Essen · bitte warten…</div>';
   try {
     const prompt = `Analysiere dieses Foto und erkenne alle sichtbaren Lebensmittel und Gerichte. Schätze Portionsgrößen und Nährwerte realistisch anhand der Bildproportionen.
 
@@ -2915,6 +2925,14 @@ document.querySelectorAll('.recipe-cat-tab').forEach(tab => {
   });
 });
 
+function getIngPrice(ingStr) {
+  const low = ingStr.toLowerCase();
+  for (const m of INGREDIENT_MAP) {
+    if (low.includes(m.key)) return `~${m.price.toFixed(2).replace('.',',')}€`;
+  }
+  return '';
+}
+
 // ============ RENDER RECIPES ============
 function renderRecipes() {
   const profile = loadProfile();
@@ -3006,7 +3024,8 @@ function renderRecipes() {
       const ingHTML = rec.ing.map((ingItem, idx) => {
         const id = `ing-${recKey}-${idx}`;
         const checked = localStorage.getItem(id) === '1';
-        return `<li><div class="ing-check${checked?' checked':''}" data-ingid="${id}"></div><span class="ing-text${checked?' done':''}">${ingItem}</span></li>`;
+        const price = getIngPrice(ingItem);
+        return `<li><div class="ing-check${checked?' checked':''}" data-ingid="${id}"></div><span class="ing-text${checked?' done':''}">${ingItem}</span>${price ? `<span class="ing-price">${price}</span>` : ''}</li>`;
       }).join('');
       const stepsHTML = rec.steps.map(s => `<li>${s}</li>`).join('');
 
@@ -5141,19 +5160,27 @@ setTimeout(() => {
       foodPhotoInput.value = '';
       return;
     }
+    const resultEl2 = document.getElementById('foodAiResult');
+    resultEl2.innerHTML = '<div class="ai-loading">Foto wird geladen…</div>';
     const reader = new FileReader();
+    reader.onerror = () => {
+      resultEl2.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Foto konnte nicht gelesen werden.</div>';
+    };
     reader.onload = (ev) => {
       const img = new Image();
+      img.onerror = () => {
+        resultEl2.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Bild konnte nicht verarbeitet werden. Versuche ein anderes Foto.</div>';
+      };
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const maxDim = 800;
-        let w = img.width, h = img.height;
-        if (w > h && w > maxDim) { h = h * (maxDim / w); w = maxDim; }
-        else if (h > maxDim) { w = w * (maxDim / h); h = maxDim; }
+        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        analyzeFoodPhoto(compressed, resultEl);
+        analyzeFoodPhoto(compressed, resultEl2);
         foodPhotoInput.value = '';
       };
       img.src = ev.target.result;
