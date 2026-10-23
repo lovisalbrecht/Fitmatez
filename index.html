@@ -104,8 +104,13 @@
   .recipe-section-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin: 12px 0 8px; }
   .recipe-section-title:first-child { margin-top: 0; }
   .recipe-ing-list { font-size: 13px; line-height: 1.8; color: var(--text); }
-  .recipe-ing-list li { list-style: none; padding-left: 16px; position: relative; }
-  .recipe-ing-list li::before { content: '·'; position: absolute; left: 4px; color: var(--accent); font-weight: bold; }
+  .recipe-ing-list li { list-style: none; padding-left: 0; position: relative; display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; }
+  .ing-check { width: 18px; height: 18px; border: 1.5px solid var(--border); border-radius: 4px; background: var(--bg-elev); cursor: pointer; flex-shrink: 0; position: relative; transition: all 0.2s; margin-top: 2px; }
+  .ing-check.checked { background: var(--accent); border-color: var(--accent); }
+  .ing-check.checked::after { content: '✓'; position: absolute; color: #000; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 11px; }
+  .ing-text.done { text-decoration: line-through; color: var(--text-mute); }
+  .recipe-goal-filter { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .recipe-show-all { font-size: 12px; color: var(--text-mute); cursor: pointer; text-decoration: underline; margin-left: auto; }
   .recipe-steps { font-size: 13px; line-height: 1.7; color: var(--text-dim); counter-reset: step; }
   .recipe-steps li { list-style: none; padding-left: 28px; position: relative; margin-bottom: 8px; counter-increment: step; }
   .recipe-steps li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 20px; height: 20px; background: var(--accent); color: #000; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
@@ -2937,58 +2942,92 @@ function renderRecipes() {
     return score;
   };
   
+  // Goal filter function — only show recipes relevant to the user's goal
+  function recipeMatchesGoal(rec, g, showAll) {
+    if (showAll || g === 'maintain') return true;
+    const pr = rec.p / rec.kcal;
+    if (g === 'cut')    return rec.kcal <= 700 || pr >= 0.052;
+    if (g === 'muscle') return rec.p >= 30 || rec.kcal >= 480;
+    if (g === 'recomp') return rec.p >= 28 && rec.kcal <= 800;
+    return true;
+  }
+
+  // State: whether "show all" is toggled per category
+  if (!window._recipeShowAll) window._recipeShowAll = {};
+
   Object.keys(RECIPES).forEach(cat => {
     const container = document.getElementById('cat-' + cat);
     if (!container) return;
     container.innerHTML = '';
-    
-    // Sort recipes — fridge match first (when active), then by goal relevance
-    const sortedRecipes = [...RECIPES[cat]].sort((a, b) => {
-      if (fridgeActive.size > 0) {
-        const mA = getRecipeIngMatch(a); const mB = getRecipeIngMatch(b);
-        const pA = mA ? mA.matched / mA.total : 0;
-        const pB = mB ? mB.matched / mB.total : 0;
-        if (pB !== pA) return pB - pA;
-      }
-      return scoreRecipe(b) - scoreRecipe(a);
-    });
-    
-    // Show goal indicator at top
+
+    const showAll = !!window._recipeShowAll[cat];
+
+    // Sort: fridge match first → goal score
+    const sortedRecipes = [...RECIPES[cat]]
+      .filter(rec => recipeMatchesGoal(rec, goal, showAll))
+      .sort((a, b) => {
+        if (fridgeActive.size > 0) {
+          const mA = getRecipeIngMatch(a), mB = getRecipeIngMatch(b);
+          const pA = mA ? mA.matched / mA.total : 0, pB = mB ? mB.matched / mB.total : 0;
+          if (pB !== pA) return pB - pA;
+        }
+        return scoreRecipe(b) - scoreRecipe(a);
+      });
+
+    const allCount = RECIPES[cat].length;
+    const hiddenCount = allCount - sortedRecipes.length;
+
+    // Goal banner
     if (profile) {
-      const goalLabels = { muscle: 'Muskelaufbau – proteinreich & kalorienreich', cut: 'Definition – proteinreich & kalorienarm', recomp: 'Recomp – balanciert', maintain: 'Halten – ausgewogen' };
+      const goalLabels = { muscle: 'Muskelaufbau', cut: 'Definition', recomp: 'Recomp', maintain: 'Halten' };
       const banner = document.createElement('div');
-      banner.style.cssText = 'background: rgba(212, 255, 58, 0.05); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--text);';
-      banner.innerHTML = `<strong style="color: var(--accent);">Sortiert für dein Ziel:</strong> ${goalLabels[goal]}`;
+      banner.className = 'recipe-goal-filter';
+      banner.innerHTML = `<span style="font-size:12px;color:var(--text-dim);">Gefiltert für: <strong style="color:var(--accent);">${goalLabels[goal]||goal}</strong></span>`
+        + (hiddenCount > 0 ? `<span class="recipe-show-all" data-cat="${cat}">${showAll?'Nur mein Ziel':'+ ${hiddenCount} weitere anzeigen'.replace('${hiddenCount}',hiddenCount)}</span>` : '');
       container.appendChild(banner);
+      const btn = banner.querySelector('.recipe-show-all');
+      if (btn) btn.addEventListener('click', () => {
+        window._recipeShowAll[cat] = !window._recipeShowAll[cat];
+        renderRecipes();
+        // Re-open same category tab
+        document.querySelectorAll('.recipe-cat').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.recipe-cat-tab').forEach(t => t.classList.remove('active'));
+        const activeTab = document.querySelector(`.recipe-cat-tab[data-cat="${cat}"]`);
+        if (activeTab) { activeTab.classList.add('active'); document.getElementById('cat-'+cat).classList.add('active'); }
+      });
     }
-    
+
     sortedRecipes.forEach((rec) => {
       const card = document.createElement('div');
       card.className = 'recipe-card';
-      const ingHTML = rec.ing.map(i => `<li>${i}</li>`).join('');
-      const stepsHTML = rec.steps.map(s => `<li>${s}</li>`).join('');
-      
-      // Add "Best Match" badge for top recipes
-      const isTopMatch = scoreRecipe(rec) >= 130;
-      
-      // Goal badges
-      const proteinRatio = rec.p / rec.kcal;
-      const goalBadges = [];
-      if (rec.p >= 40 && rec.kcal >= 600) goalBadges.push('<span style="background:rgba(212,255,58,0.15);color:#d4ff3a;border:1px solid #d4ff3a;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">MUSCLE</span>');
-      if (proteinRatio >= 0.055 && rec.kcal <= 650) goalBadges.push('<span style="background:rgba(255,107,107,0.15);color:#ff8a8a;border:1px solid #ff6b6b;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">CUT</span>');
-      if (rec.p >= 35 && rec.kcal <= 750) goalBadges.push('<span style="background:rgba(107,203,255,0.15);color:#6bcbff;border:1px solid #6bcbff;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">RECOMP</span>');
 
-      // Cost
+      // Ingredient checkboxes — each item gets a check
+      const recKey = rec.name.replace(/[^a-z0-9]/gi,'').slice(0,16);
+      const ingHTML = rec.ing.map((ingItem, idx) => {
+        const id = `ing-${recKey}-${idx}`;
+        const checked = localStorage.getItem(id) === '1';
+        return `<li><div class="ing-check${checked?' checked':''}" data-ingid="${id}"></div><span class="ing-text${checked?' done':''}">${ingItem}</span></li>`;
+      }).join('');
+      const stepsHTML = rec.steps.map(s => `<li>${s}</li>`).join('');
+
+      // Single relevant badge for user's goal
+      const pr = rec.p / rec.kcal;
+      let badgeHTML = '';
+      if (goal==='muscle' && rec.p>=40 && rec.kcal>=600)
+        badgeHTML = '<span style="background:rgba(212,255,58,0.15);color:#d4ff3a;border:1px solid #d4ff3a;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">MUSCLE ✓</span>';
+      else if (goal==='cut' && pr>=0.055 && rec.kcal<=650)
+        badgeHTML = '<span style="background:rgba(255,107,107,0.15);color:#ff8a8a;border:1px solid #ff6b6b;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">CUT ✓</span>';
+      else if (goal==='recomp' && rec.p>=35 && rec.kcal<=750)
+        badgeHTML = '<span style="background:rgba(107,203,255,0.15);color:#6bcbff;border:1px solid #6bcbff;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">RECOMP ✓</span>';
+
       const cost = RECIPE_COSTS[rec.name];
 
-      // Fridge match
+      // Fridge match dots
       const match = getRecipeIngMatch(rec);
       let matchHTML = '';
       if (match && match.total > 0) {
-        const pct = Math.round((match.matched / match.total) * 100);
         const dots = [...fridgeActive].map(chip => {
-          const keys = FRIDGE_KEY_MAP[chip] || [];
-          const hit = keys.some(k => rec.ing.join(' ').toLowerCase().includes(k));
+          const hit = (FRIDGE_KEY_MAP[chip]||[]).some(k => rec.ing.join(' ').toLowerCase().includes(k));
           return `<div class="recipe-match-dot${hit?' hit':''}"></div>`;
         }).join('');
         matchHTML = `<div class="recipe-match-bar">${dots}<span style="margin-left:4px;">${match.matched}/${match.total} vorhanden</span></div>`;
@@ -2997,15 +3036,15 @@ function renderRecipes() {
       card.innerHTML = `
         <div class="recipe-header">
           <div class="recipe-main">
-            <div class="recipe-name">${rec.name}${isTopMatch ? ' <span class="custom-ex-tag" style="font-size: 9px;">TOP</span>' : ''}</div>
-            <div class="recipe-meta"><span>${rec.kcal} kcal</span><span>${rec.p}g Protein</span><span>${rec.time}</span>${cost ? `<span style="color:var(--accent);font-weight:700;">${cost}</span>` : ''}</div>
-            ${goalBadges.length ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">${goalBadges.join('')}</div>` : ''}
+            <div class="recipe-name">${rec.name}</div>
+            <div class="recipe-meta"><span>${rec.kcal} kcal</span><span>${rec.p}g Protein</span><span>${rec.time}</span>${cost?`<span style="color:var(--accent);font-weight:700;">${cost}</span>`:''}</div>
+            ${badgeHTML ? `<div style="margin-top:5px;">${badgeHTML}</div>` : ''}
             ${matchHTML}
           </div>
           <div class="recipe-arrow">›</div>
         </div>
         <div class="recipe-body">
-          <div class="recipe-section-title">Zutaten</div>
+          <div class="recipe-section-title">Zutaten <span style="font-size:10px;color:var(--text-mute);font-weight:400;">– Abhaken was du hast</span></div>
           <ul class="recipe-ing-list">${ingHTML}</ul>
           <div class="recipe-section-title">Zubereitung</div>
           <ol class="recipe-steps">${stepsHTML}</ol>
@@ -3014,6 +3053,23 @@ function renderRecipes() {
       `;
       card.querySelector('.recipe-header').addEventListener('click', () => {
         card.classList.toggle('expanded');
+      });
+      // Ingredient checkbox events
+      card.querySelectorAll('.ing-check').forEach(box => {
+        box.addEventListener('click', e => {
+          e.stopPropagation();
+          const id = box.dataset.ingid;
+          const text = box.nextElementSibling;
+          if (box.classList.contains('checked')) {
+            box.classList.remove('checked');
+            if (text) text.classList.remove('done');
+            localStorage.removeItem(id);
+          } else {
+            box.classList.add('checked');
+            if (text) text.classList.add('done');
+            localStorage.setItem(id, '1');
+          }
+        });
       });
       container.appendChild(card);
     });
