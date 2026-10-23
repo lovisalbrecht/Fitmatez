@@ -5146,18 +5146,20 @@ setTimeout(() => {
   const profileBtn = document.getElementById('editProfileBtn');
   if (profileBtn) profileBtn.addEventListener('click', showProfileEdit);
   
-  // Food photo AI — dynamic input creation (most reliable on iOS PWA)
+  // Food photo AI
   const foodPhotoBtn = document.getElementById('foodPhotoBtn');
   if (foodPhotoBtn) {
     let _foodBusy = false;
     foodPhotoBtn.addEventListener('click', () => {
+      const resultEl = document.getElementById('foodAiResult');
       if (_foodBusy) return;
-      // Create a fresh input element each click — avoids iOS PWA event-loss bug
+      resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 1: Kamera wird geöffnet…</div>';
+
       const tmpInput = document.createElement('input');
       tmpInput.type = 'file';
       tmpInput.accept = 'image/*';
-      tmpInput.setAttribute('capture', 'environment');
-      tmpInput.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
+      // no capture attr — more reliable event firing on iOS
+      tmpInput.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
       document.body.appendChild(tmpInput);
 
       let _handled = false;
@@ -5165,33 +5167,35 @@ setTimeout(() => {
         if (_handled) return;
         const file = tmpInput.files && tmpInput.files[0];
         if (!file) {
+          resultEl.innerHTML = '';
           if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
           return;
         }
         _handled = true;
         _foodBusy = true;
-        const resultEl = document.getElementById('foodAiResult');
+        if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
         const hasWorker = typeof AI_PROXY_URL !== 'undefined' && AI_PROXY_URL && AI_PROXY_URL.startsWith('https://');
         const apiKey = localStorage.getItem('aiKey');
-        if (document.body.contains(tmpInput)) document.body.removeChild(tmpInput);
         if (!apiKey && !hasWorker) {
           resultEl.innerHTML = `<div class="ai-disabled-banner"><strong>KI-Analyse nicht aktiv.</strong> Tipp oben auf "Profil" und trag deinen Gemini API-Key ein.</div>`;
           _foodBusy = false;
           return;
         }
-        resultEl.innerHTML = '<div class="ai-loading">Foto wird geladen…</div>';
+        resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 2: Foto wird eingelesen… (${Math.round(file.size/1024)} KB)</div>'.replace('${Math.round(file.size/1024)}', Math.round(file.size/1024));
         const reader = new FileReader();
         reader.onerror = () => {
-          resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Foto konnte nicht gelesen werden.</div>';
+          resultEl.innerHTML = '<div class="ai-error"><strong>Fehler Schritt 2:</strong><br>Foto konnte nicht gelesen werden.</div>';
           _foodBusy = false;
         };
         reader.onload = (ev) => {
+          resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 3: Bild wird verarbeitet…</div>';
           const img = new Image();
           img.onerror = () => {
-            resultEl.innerHTML = '<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>Bild konnte nicht verarbeitet werden.</div>';
+            resultEl.innerHTML = '<div class="ai-error"><strong>Fehler Schritt 3:</strong><br>Bild konnte nicht verarbeitet werden.</div>';
             _foodBusy = false;
           };
           img.onload = () => {
+            resultEl.innerHTML = '<div class="ai-loading">📷 Schritt 4: KI analysiert… bitte warten</div>';
             try {
               const canvas = document.createElement('canvas');
               const maxDim = 800;
@@ -5204,7 +5208,7 @@ setTimeout(() => {
               const compressed = canvas.toDataURL('image/jpeg', 0.7);
               analyzeFoodPhoto(compressed, resultEl);
             } catch(err) {
-              resultEl.innerHTML = `<div class="ai-error"><strong>Fehlgeschlagen:</strong><br>${err.message}</div>`;
+              resultEl.innerHTML = `<div class="ai-error"><strong>Fehler Schritt 4:</strong><br>${err.message}</div>`;
             } finally {
               _foodBusy = false;
             }
