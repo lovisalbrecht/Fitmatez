@@ -1339,10 +1339,15 @@ function setupOnboarding() {
       if (slotDbg) slotDbg.style.outline = '3px solid orange';
       const keyInput = document.getElementById('onbApiKeyInput');
       if (keyInput && keyInput.value.trim()) localStorage.setItem('aiKey', keyInput.value.trim());
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
+      // Use createObjectURL — far more memory-efficient than FileReader data URL on iOS
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        if (slotDbg) { slotDbg.style.outline = '3px solid red'; slotDbg.title = 'Bild-Ladefehler'; }
+      };
+      img.onload = () => {
+        try {
           const canvas = document.createElement('canvas');
           const maxDim = 500;
           let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
@@ -1351,11 +1356,14 @@ function setupOnboarding() {
           if (w < 1) w = 1; if (h < 1) h = 1;
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(objectUrl);
           const compressed = canvas.toDataURL('image/jpeg', 0.7);
+          if (!onbData.photos) onbData.photos = {};
           onbData.photos[angle] = compressed;
           const slotEl = document.getElementById('photoSlot-' + angle);
           if (slotEl) {
             slotEl.classList.add('filled');
+            slotEl.style.outline = '3px solid #d4ff3a';
             const existingImg = slotEl.querySelector('img');
             if (existingImg) existingImg.remove();
             const newImg = document.createElement('img');
@@ -1364,10 +1372,11 @@ function setupOnboarding() {
             slotEl.insertBefore(newImg, slotEl.firstChild);
           }
           updatePhotoProgress();
-        };
-        img.src = ev.target.result;
+        } catch(err) {
+          if (slotDbg) { slotDbg.style.outline = '3px solid red'; slotDbg.title = err.message; }
+        }
       };
-      reader.readAsDataURL(file);
+      img.src = objectUrl;
     });
   }
 
