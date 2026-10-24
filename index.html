@@ -1804,28 +1804,50 @@ Sei direkt, sachlich, motivierend. Keine Bewertung des Aussehens.`;
 }
 
 // ANALYZE WITH MULTIPLE PHOTOS (front/back/left/right)
+// Combine up to 4 body photos into one grid image for the Worker (single-image API)
+function composePhotosGrid(photos) {
+  const order = ['front', 'back', 'left', 'right'];
+  const available = order.filter(a => photos[a]);
+  if (available.length === 0) return Promise.resolve(null);
+  if (available.length === 1) return Promise.resolve(photos[available[0]]);
+  const cols = 2, rows = Math.ceil(available.length / 2);
+  const cell = 400;
+  const canvas = document.createElement('canvas');
+  canvas.width = cols * cell; canvas.height = rows * cell;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#111'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const labelMap = { front:'Vorne', back:'Rücken', left:'Links', right:'Rechts' };
+  const loads = available.map((angle, i) => new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const cx = (i % cols) * cell, cy = Math.floor(i / cols) * cell;
+      const s = Math.min(cell / img.width, cell / img.height);
+      const w = img.width * s, h = img.height * s;
+      ctx.drawImage(img, cx + (cell-w)/2, cy + (cell-h)/2, w, h);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(cx, cy + cell - 22, cell, 22);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(labelMap[angle], cx + cell/2, cy + cell - 7);
+      res();
+    };
+    img.onerror = res;
+    img.src = photos[angle];
+  }));
+  return Promise.all(loads).then(() => canvas.toDataURL('image/jpeg', 0.82));
+}
+
 async function analyzePhysiqueMulti(photos, resultEl) {
   try {
     const profile = loadProfile() || {};
     const goal = profile.goal || onbData.goal || 'muscle';
     const goalLabels = { muscle: 'Muskelaufbau', cut: 'Definition/Abnehmen', recomp: 'Recomposition', maintain: 'Halten/Fitness' };
+
+    const available = ['front', 'back', 'left', 'right'].filter(a => photos[a]);
+    if (available.length === 0) throw new Error('Mindestens 1 Foto erforderlich.');
     
-    // Build array of {data, label} from available photos
-    const angleLabels = { front: 'Vorderansicht', back: 'Rückansicht', left: 'Linke Seitenansicht', right: 'Rechte Seitenansicht' };
-    const imagesArray = [];
-    ['front', 'back', 'left', 'right'].forEach(angle => {
-      if (photos[angle]) {
-        imagesArray.push({ data: photos[angle], label: angleLabels[angle] });
-      }
-    });
-    
-    if (imagesArray.length === 0) {
-      throw new Error('Mindestens 1 Foto erforderlich.');
-    }
-    
-    const photoNote = imagesArray.length === 4 
-      ? 'Du siehst diese Person aus allen 4 Perspektiven: Vorne, Rücken, links und rechts. Nutze alle Ansichten für eine möglichst präzise Analyse.'
-      : `Du siehst ${imagesArray.length} Foto(s) der Person. Analysiere was sichtbar ist.`;
+    const photoNote = available.length === 4
+      ? 'Du siehst diese Person aus allen 4 Perspektiven in einem Raster-Bild: Vorne, Rücken, Links, Rechts. Nutze alle Ansichten.'
+      : `Du siehst ${available.length} Foto(s) der Person im Bild (${available.map(a=>({front:'Vorne',back:'Rücken',left:'Links',right:'Rechts'})[a]).join(', ')}). Analysiere was sichtbar ist.`;
     
     const prompt = `Du bist ein erfahrener Fitness-Coach. ${photoNote}
 
@@ -1852,7 +1874,10 @@ fokus_muskeln: 2-5 wichtigste aus: chest_upper, chest_lower, shoulders_front, sh
 
 Sei direkt, sachlich, motivierend. Keine Bewertung des Aussehens, nur Trainings-Empfehlungen.`;
     
-    const result = await callGemini(prompt, imagesArray);
+    // Compose all photos into one grid image — Worker only supports single image
+    const gridImage = await composePhotosGrid(photos);
+    if (!gridImage) throw new Error('Foto konnte nicht verarbeitet werden.');
+    const result = await callGemini(prompt, gridImage);
     
     // Robust JSON parsing
     let data = null;
@@ -1889,7 +1914,7 @@ Sei direkt, sachlich, motivierend. Keine Bewertung des Aussehens, nur Trainings-
     }
     
     let html = `<div class="ai-result">`;
-    html += `<strong>Analyse basierend auf ${imagesArray.length} Foto${imagesArray.length > 1 ? 's' : ''}:</strong><br><br>`;
+    html += `<strong>Analyse basierend auf ${available.length} Foto${available.length > 1 ? 's' : ''}:</strong><br><br>`;
     html += `<strong>Körpertyp:</strong> ${escapeHtml(data.koerpertyp)}<br><br>`;
     if (data.staerken) html += `<strong>Stärken:</strong> ${escapeHtml(data.staerken)}<br><br>`;
     if (data.schwaechen) html += `<strong>Fokus-Bereiche:</strong> ${escapeHtml(data.schwaechen)}<br><br>`;
